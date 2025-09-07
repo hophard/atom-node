@@ -1,23 +1,25 @@
 ﻿name: release
 on:
-push:
-tags:
-- "v*"
+  push:
+    tags:
+      - 'v*'
+permissions:
+  contents: write
 jobs:
-build:
-runs-on: ubuntu-latest
-steps:
-- uses: actions/checkout@v4
-- name: Make archives
-run: |
-mkdir -p dist
-zip -r dist/AtomNode-windows.zip scripts/install.ps1 agent
-tar -czf dist/AtomNode-linux.tar.gz scripts/install.sh agent
-zip -r dist/AtomNode-macos.zip scripts/install.sh agent
-- name: Create GitHub Release
-uses: softprops/action-gh-release@v2
-with:
-files: |
-dist/AtomNode-windows.zip
-dist/AtomNode-linux.tar.gz
-dist/AtomNode-macos.zip
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Make archives
+        run: |
+          mkdir -p dist
+          zip -r dist/AtomNode-windows.zip scripts/install.ps1 agent
+          tar -czf dist/AtomNode-linux.tar.gz scripts/install.sh agent
+          zip -r dist/AtomNode-macos.zip scripts/install.sh agent
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/AtomNode-windows.zip
+            dist/AtomNode-linux.tar.gz
+            dist/AtomNode-macos.zip
