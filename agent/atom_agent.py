@@ -1,13 +1,13 @@
-﻿import os, sys, time, json, pathlib, requests, shutil, tempfile
+﻿import os, sys, time, json, pathlib, requests, shutil
 
 ROOT = pathlib.Path.home() / ".atomnode"
-CFG = ROOT / "config.json"
+CFG  = ROOT / "config.json"
 ROOT.mkdir(parents=True, exist_ok=True)
 
 cfg = {
-  "api_base": os.getenv("ATOM_API_BASE", "http://144.202.23.216"),
-  "token": os.getenv("ATOM_TOKEN", ""),
-  "update_url": os.getenv("ATOM_UPDATE_URL", "https://raw.githubusercontent.com/hophard/atom-node/main/agent/atom_agent.py")
+    "api_base": os.getenv("ATOM_API_BASE", "http://144.202.23.216"),
+    "token":    os.getenv("ATOM_TOKEN", ""),
+    "update_url": os.getenv("ATOM_UPDATE_URL", "https://raw.githubusercontent.com/hophard/atom-node/main/agent/atom_agent.py"),
 }
 
 if CFG.exists():

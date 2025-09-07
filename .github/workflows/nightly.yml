@@ -1,1 +1,71 @@
-﻿
+﻿name: nightly-update
+on:
+schedule:
+- cron: "0 9 * * *" # daily @ 09:00 UTC
+workflow_dispatch:
+permissions:
+contents: write
+jobs:
+refresh:
+runs-on: ubuntu-latest
+steps:
+- uses: actions/checkout@v4
+ # Optional: set repo secret MODEL_NAME to override the model string; otherwise use UTC date.
+  - name: Determine model string
+    env:
+      MODEL_NAME: ${{ secrets.MODEL_NAME }}
+    run: |
+      set -euo pipefail
+      echo "${MODEL_NAME:-$(date -u +%Y-%m-%d)}" > .model-version
+      cat .model-version
+
+  - name: Update README and stamp model
+    run: |
+      python3 - <<'PY'
+      import re, pathlib
+      ver = pathlib.Path('.model-version').read_text().strip()
+      p = pathlib.Path('README.md')
+      txt = p.read_text(encoding='utf-8')
+      txt, n = re.subn(r'(<!--MODEL-VERSION-->).*?(<!--/MODEL-VERSION-->)',
+                       rf'\1{ver}\2', txt, flags=re.S)
+      p.write_text(txt, encoding='utf-8')
+      print('Stamped model:', ver, 'replacements:', n)
+      PY
+
+  - name: Commit changes if any
+    id: commit
+    run: |
+      git config user.name  "github-actions"
+      git config user.email "github-actions@users.noreply.github.com"
+      git add -A
+      if git diff --cached --quiet; then
+        echo "changed=false" >> $GITHUB_OUTPUT
+        echo "No changes to commit."
+      else
+        git commit -m "chore(nightly): refresh README/model"
+        echo "changed=true" >> $GITHUB_OUTPUT
+      fi
+
+  - name: Build release artifacts
+    if: steps.commit.outputs.changed == 'true'
+    run: |
+      set -euo pipefail
+      mkdir -p dist
+      zip -r dist/AtomNode-windows.zip scripts/install.ps1 agent
+      tar -czf dist/AtomNode-linux.tar.gz scripts/install.sh agent
+      zip -r dist/AtomNode-macos.zip scripts/install.sh agent
+
+  - name: Tag + GitHub Release
+    if: steps.commit.outputs.changed == 'true'
+    env:
+      GH_TOKEN: ${{ github.token }}
+    run: |
+      set -euo pipefail
+      TAG="v$(date -u +%Y.%m.%d).nightly"
+      git tag -f "$TAG"
+      git push -f origin "$TAG"
+      gh release create "$TAG" -t "$TAG" \
+        dist/AtomNode-windows.zip \
+        dist/AtomNode-linux.tar.gz \
+        dist/AtomNode-macos.zip \
+        --latest=false
