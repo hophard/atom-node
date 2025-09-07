@@ -27,9 +27,11 @@ return r.status_code, r.text[:200]
 except Exception as e:
 return 0, str(e)
 
-if name == "main":
+if __name__ == "__main__":
 print("[atom-agent] config:", cfg)
 while True:
 code, msg = heartbeat()
 print(f"[atom-agent] ping -> {code} {msg}")
 time.sleep(30)
+
+

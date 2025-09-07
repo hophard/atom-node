@@ -28,7 +28,7 @@ ed"; exit 1; }
 ade pip wheel >/dev/null
 "${VENVDI
 }/bin/python3" -m pip install 
-equests >/devnull
+equests >/dev/null
 
 cu
 l -fsSL "https://
