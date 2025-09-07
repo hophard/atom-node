@@ -1,12 +1,17 @@
-﻿# Atom Node (bootstrap)
+﻿# Atom Node
 
-Installs a minimal local agent that pings your VPS lobby and can be extended later.
+Minimal local agent that pings your VPS lobby and can be extended later.
+
+> Model: <!--MODEL-VERSION-->unknown<!--/MODEL-VERSION-->
 
 ## Quick install
 
 ### Windows
-```powershell
+`powershell
 iwr -useb https://raw.githubusercontent.com/hophard/atom-node/main/scripts/install.ps1 | iex
-Linux/macOS
 
 curl -fsSL https://raw.githubusercontent.com/hophard/atom-node/main/scripts/install.sh | bash
+Releases (prebuilt archives)
+
+Latest: https://github.com/hophard/atom-node/releases/latest
+
