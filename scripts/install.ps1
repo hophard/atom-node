@@ -1,39 +1,32 @@
-﻿
-Atom Node bootstrap (Windows)
-$ErrorActionPreference = 'Stop'
-$Root = Join-Path $env:ProgramData 'AtomNode'
-$Py = Join-Path $Root 'venv\Scripts\python.exe'
-$AgentDir = Join-Path $Root 'agent'
-$AgentPy = Join-Path $AgentDir 'atom_agent.py'
-$ApiBase = $env:ATOM_API_BASE; if (-not $ApiBase) { $ApiBase = 'http://144.202.23.216' }
+﻿$ErrorActionPreference='Stop'
+$root = Join-Path $env:USERPROFILE '.atomnode'
+$venv = Join-Path $root 'venv'
+$agentDir = Join-Path $root 'agent'
+$agentPy = Join-Path $agentDir 'atom_agent.py'
+$apiBase = if (![string]::IsNullOrWhiteSpace($env:ATOM_API_BASE)) { $env:ATOM_API_BASE } else { 'http://144.202.23.216' }
 
-New-Item -ItemType Directory -Force -Path $Root,$AgentDir | Out-Null
+New-Item -ItemType Directory -Force -Path $agentDir | Out-Null
+py -m venv "$venv" 2>$null; if (-not (Test-Path "$venv\Scripts\python.exe")) { python -m venv "$venv" }
+& "$venv\Scripts\python.exe" -m pip install --upgrade pip wheel | Out-Null
+& "$venv\Scripts\python.exe" -m pip install requests | Out-Null
 
-if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
-Write-Host 'Python 3.10+ required. Please install from https://www.python.org/downloads/ and re-run.' -ForegroundColor Yellow
-exit 1
-}
-
-if (-not (Test-Path (Join-Path $Root 'venv'))) { python -m venv (Join-Path $Root 'venv') }
-& $Py -m pip install --upgrade pip wheel > $null
-& $Py -m pip install requests > $null
-
-iwr -useb https://raw.githubusercontent.com/hophard/atom-node/main/agent/atom_agent.py -OutFile $AgentPy
-
-@"
-{
-"api_base": "$ApiBase",
-"token": ""
-}
-"@ | Set-Content (Join-Path $Root 'config.json') -Encoding UTF8
+Invoke-WebRequest -UseBasicParsing "https://raw.githubusercontent.com/hophard/atom-node/main/agent/atom_agent.py" -OutFile "$agentPy"
 
 try {
-$Action = New-ScheduledTaskAction -Execute $Py -Argument $AgentPy
-$Trigger = New-ScheduledTaskTrigger -AtLogOn
-$Principal = New-ScheduledTaskPrincipal -UserId "$env:USERNAME" -LogonType Interactive -RunLevel LeastPrivilege
-$Task = New-ScheduledTask -Action $Action -Trigger $Trigger -Principal $Principal -Settings (New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries)
-Register-ScheduledTask -TaskName "AtomNodeAgent" -InputObject $Task -Force | Out-Null
-} catch {}
-
-Start-Process -FilePath $Py -ArgumentList $AgentPy -WindowStyle Hidden
-Write-Host "`n[OK] Atom Node installed. Config: $Root\config.json"
+  $act = New-ScheduledTaskAction -Execute (Join-Path "$venv" 'Scripts\python.exe') -Argument "`"$($agentPy)`""
+  $trg = New-ScheduledTaskTrigger -AtLogOn
+  try { Unregister-ScheduledTask -TaskName 'AtomNodeAgent' -Confirm:$false -ErrorAction SilentlyContinue } catch {}
+  Register-ScheduledTask -TaskName 'AtomNodeAgent' -Action $act -Trigger $trg -Description 'Atom Node agent' | Out-Null
+  Write-Host "[OK] Task 'AtomNodeAgent' installed (runs at logon)"
+} catch {
+  try {
+    $startup = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup'
+    $ws = New-Object -ComObject WScript.Shell
+    $lnk = $ws.CreateShortcut((Join-Path $startup 'AtomNodeAgent.lnk'))
+    $lnk.TargetPath = (Join-Path "$venv" 'Scripts\python.exe')
+    $lnk.Arguments  = "`"$($agentPy)`""
+    $lnk.WorkingDirectory = $agentDir
+    $lnk.Save()
+    Write-Host "[OK] Startup shortcut created"
+  } catch { Write-Warning "Auto-start not configured: $($_.Exception.Message)" }
+}

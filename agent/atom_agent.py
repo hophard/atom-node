@@ -11,19 +11,19 @@ if CFG.exists():
     except Exception: pass
 else:
     CFG.write_text(json.dumps(cfg, indent=2))
-node = {}
+node={}
 if NODE.exists():
-    try: node = json.loads(NODE.read_text())
-    except Exception: node = {}
+    try: node=json.loads(NODE.read_text())
+    except Exception: node={}
 if not node.get("id"):
-    node["id"] = uuid.uuid4().hex[:8]; NODE.write_text(json.dumps(node, indent=2))
+    node["id"]=uuid.uuid4().hex[:8]; NODE.write_text(json.dumps(node, indent=2))
 def _headers():
-    h={}; 
-    if cfg.get("token"): h["Authorization"] = f"Bearer {cfg['token']}"
+    h={}
+    if cfg.get("token"): h["Authorization"]=f"Bearer {cfg['token']}"
     return h
 def heartbeat():
     try:
-        r = requests.get(f"{cfg['api_base']}/api/ping", headers=_headers(), timeout=8)
+        r=requests.get(f"{cfg['api_base']}/api/ping", headers=_headers(), timeout=8)
         return r.status_code, r.text[:200]
     except Exception as e:
         return 0, str(e)
@@ -38,26 +38,25 @@ def heartbeat_node():
     try: requests.post(f"{cfg['api_base']}/api/agent/heartbeat", json=body, headers=_headers(), timeout=5)
     except Exception: pass
 def maybe_self_update():
-    url = cfg.get("update_url")
+    url=cfg.get("update_url")
     if not url: return
     try:
-        r = requests.get(url, timeout=10)
-        if r.status_code != 200: return
-        new_src = r.text; me = pathlib.Path(__file__)
-        cur_src = ""
-        try: cur_src = me.read_text(encoding="utf-8", errors="ignore")
+        r=requests.get(url, timeout=10)
+        if r.status_code!=200: return
+        new_src=r.text; me=pathlib.Path(__file__)
+        cur_src=""
+        try: cur_src=me.read_text(encoding="utf-8", errors="ignore")
         except Exception: pass
         if new_src != cur_src:
-            tmp = me.with_suffix(".py.new"); tmp.write_text(new_src, encoding="utf-8"); shutil.move(str(tmp), str(me))
+            tmp=me.with_suffix(".py.new"); tmp.write_text(new_src, encoding="utf-8"); shutil.move(str(tmp), str(me))
             print("[atom-agent] self-updated from", url)
             os.execv(sys.executable, [sys.executable, str(me)])
     except Exception as e:
         print("[atom-agent] self-update failed:", e)
-if __name__ == "__main__":
-    print("[atom-agent] config:", cfg)
-    register_node(); last_check = 0.0
+if __name__=="__main__":
+    print("[atom-agent] config:", cfg); register_node(); last_check=0.0
     while True:
-        code,msg = heartbeat(); heartbeat_node(); print(f"[atom-agent] ping -> {code} {msg}")
+        code,msg=heartbeat(); heartbeat_node(); print(f"[atom-agent] ping -> {code} {msg}")
         now=time.time()
-        if now - last_check > 86400: last_check = now; maybe_self_update()
+        if now-last_check>86400: last_check=now; maybe_self_update()
         time.sleep(30)
