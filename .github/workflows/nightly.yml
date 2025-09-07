@@ -10,7 +10,10 @@ refresh:
 runs-on: ubuntu-latest
 steps:
 - uses: actions/checkout@v4
- # Optional: set repo secret MODEL_NAME to override the model string; otherwise use UTC date.
+
+bash
+Copy code
+  # Optional: set repo secret MODEL_NAME to override the model string; otherwise use UTC date.
   - name: Determine model string
     env:
       MODEL_NAME: ${{ secrets.MODEL_NAME }}
